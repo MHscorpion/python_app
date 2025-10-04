@@ -87,7 +87,7 @@ def read_and_verify_code_file(ip_to_verify: str, input_file: str = "code.txt") -
     파일에서 저장된 해시 값을 읽어 들여, 새로운 IP 주소의 해시 값과 비교합니다.
     """
     if not os.path.exists(input_file):
-        print(f"⚠️ 오류: 파일 '{input_file}'을 찾을 수 없습니다. 먼저 파일을 생성해야 합니다.")
+        #print(f"⚠️ 오류: 파일 '{input_file}'을 찾을 수 없습니다. 먼저 파일을 생성해야 합니다.")
         return False
     
     try:
@@ -101,22 +101,22 @@ def read_and_verify_code_file(ip_to_verify: str, input_file: str = "code.txt") -
 
         # 3. 두 해시 값을 비교합니다.
         print("\n" + "=" * 35)
-        print(f"🔍 검증 대상 IP: {ip_to_verify} (현재 공인 IP)")
+        #print(f"🔍 검증 대상 IP: {ip_to_verify} (현재 공인 IP)")
         
         if stored_hash == verify_hex_digest:
-            print(f"⭐ 검증 성공: 현재 공인 IP의 해시가 저장된 파일과 **일치**합니다.")
-            print(f"저장된 해시: {stored_hash[:10]}...")
-            print("=" * 35)
+            #print(f"⭐ 검증 성공: 현재 공인 IP의 해시가 저장된 파일과 **일치**합니다.")
+            #print(f"저장된 해시: {stored_hash[:10]}...")
+            #print("=" * 35)
             return True
         else:
-            print(f"❌ 검증 실패: 현재 공인 IP의 해시가 저장된 파일과 **일치하지 않습니다**.")
-            print(f"저장된 해시: {stored_hash}")
-            print(f"현재 IP 해시: {verify_hex_digest}")
-            print("=" * 35)
+            #print(f"❌ 검증 실패: 현재 공인 IP의 해시가 저장된 파일과 **일치하지 않습니다**.")
+            #print(f"저장된 해시: {stored_hash}")
+            #print(f"현재 IP 해시: {verify_hex_digest}")
+            #print("=" * 35)
             return False
 
     except IOError as e:
-        print(f"❌ 파일 읽기 오류가 발생했습니다: {e}")
+        #print(f"❌ 파일 읽기 오류가 발생했습니다: {e}")
         return False
     except Exception as e:
         print(f"❌ 예상치 못한 오류가 발생했습니다: {e}")
@@ -490,22 +490,24 @@ async def main():
     try:
         hocode_from_file = read_hocode_from_file(file_name)
     except FileNotFoundError as e:
-        print(e)
+        #print(e)
         exit()
     
     if not hocode_from_file:
-        print(f"오류: '{file_name}' 파일이 비어 있습니다.")
+        #print(f"오류: '{file_name}' 파일이 비어 있습니다.")
         exit()
     
     if current_public_ip:
-        read_and_verify_code_file(current_public_ip,file_name)
+        if read_and_verify_code_file(current_public_ip,file_name) == False : 
+            exit()
     else:
-        print("공인 IP를 가져오지 못하여 검증을 건너뜜.")
+        #print("공인 IP를 가져오지 못하여 검증을 건너뜜.")
         exit()
 
     agent_data = get_agent_info(hocode_from_file)
 
     if agent_data:
+        '''
         print("Agent Information:")
         print(f"  hocode: {agent_data.get('hocode')}")
         print(f"  name: {agent_data.get('name')}")
@@ -514,6 +516,7 @@ async def main():
         print(f"  dbserver: {agent_data.get('dbserver')}")
         print(f"  active: {agent_data.get('active')}")
         print(f"  activekey: {agent_data.get('activekey')}")
+        '''
         raccess.setServerIp(agent_data.get('rsserver'),agent_data.get('ccserver'))
         raccess.clServerIP = agent_data.get('rsserver')
         raccess.csServerIP = agent_data.get('ccserver')
@@ -522,6 +525,7 @@ async def main():
             exit()
     else:
         print("Failed to retrieve agent information.")
+        exit()
     
     try:
         # 웹소켓 시작
