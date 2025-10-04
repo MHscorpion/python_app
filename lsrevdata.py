@@ -5,7 +5,7 @@ import datetime
 import socketio 
 #from frealtime_get import logger
 #from frealtime_get import sendToServer
-import lsfrealtime as freal
+#import lsfrealtime as freal
 
 presentCodelist={}
 rsws = socketio.Client()
@@ -66,9 +66,12 @@ def reconnect():
 def setServerIp( rsip,csip):
     clServerIP=rsip
     csServerIP=csip
+    #print("set rs IP:" +clServerIP)
+    #print("set cs IP:" +csServerIP)
+
+def outputServerIp():
     print("set rs IP:" +clServerIP)
-    print("set cs IP:" +csServerIP)
-    
+    print("set cs IP:" +csServerIP)    
 
 def add_to_list(key, value):
     global cpoint_list
@@ -278,7 +281,7 @@ def stockhoka_futs(trid,count,data):
         
         
     except Exception as err: 
-        freal.logger.debug('국내 지수 선물 호가 데이터 exception error: %s' % err)
+        print('국내 지수 선물 호가 데이터 exception error: %s' % err)
     
 
 # 국내 지수선물체결처리 출력라이브러리
@@ -337,7 +340,7 @@ def stockspurchase_futs(trid,count,data):
         #sendToTrServer('trade',jsonData2)
 
     except Exception as err: 
-        freal.logger.debug('국내 지수 선물 체결 데이터 exception error: %s' % err)
+        print('국내 지수 선물 체결 데이터 exception error: %s' % err)
 
 def updateMongodb(trid,pValue):   
     global prevSellData
@@ -508,7 +511,7 @@ def stockhoka_overseafut(trid,count,tsize,data):
         '''
     
     except Exception as err: 
-        freal.logger.debug('해외 지수 선물 호가 데이터 exception error: %s' % err)
+        print('해외 지수 선물 호가 데이터 exception error: %s' % err)
 
     
 
@@ -583,7 +586,7 @@ def stockspurchase_overseafut(trid,count,tsize,data):
         #sendToTrServer('trade',jsonData2)
 
     except Exception as err: 
-        freal.logger.debug('해외 지수 선물 체결 데이터 exception error: %s' % err)
+        print('해외 지수 선물 체결 데이터 exception error: %s' % err)
         
 def updateOverseaMongodb(trid,pValue):
     dataDic={} 

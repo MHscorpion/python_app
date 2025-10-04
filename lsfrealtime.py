@@ -447,6 +447,9 @@ async def main():
         print(f"  active: {agent_data.get('active')}")
         print(f"  activekey: {agent_data.get('activekey')}")
         raccess.setServerIp(agent_data.get('rsserver'),agent_data.get('ccserver'))
+        raccess.clServerIP = agent_data.get('rsserver')
+        raccess.csServerIP = agent_data.get('ccserver')
+        raccess.outputServerIp()
         if agent_data.get('active') == 'false':
             exit()
     else:
