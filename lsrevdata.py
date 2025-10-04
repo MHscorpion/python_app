@@ -11,7 +11,8 @@ presentCodelist={}
 rsws = socketio.Client()
 trws = socketio.Client()
 
-trade_mongo=pymongo.MongoClient('mongodb+srv://devbox72:PyeCYJ0G72MlcpGU@tradeccs.fo3b3.mongodb.net/tradeccs?retryWrites=true&w=majority')
+#trade_mongo=pymongo.MongoClient('mongodb+srv://devbox72:PyeCYJ0G72MlcpGU@tradeccs.fo3b3.mongodb.net/tradeccs?retryWrites=true&w=majority')
+trade_mongo=pymongo.MongoClient('mongodb+srv://neov5550:must98*419@cluster1.fe2ug5h.mongodb.net/tradeccs?retryWrites=true&w=majority&appName=Cluster1')
 
 tradedb=trade_mongo['tradeccs']
 rtcodeinfo = tradedb.realtimecodeinfos
@@ -62,6 +63,13 @@ def reconnect():
     print("rsws reconnected!")       
 
 
+def setServerIp( rsip,csip):
+    clServerIP=rsip
+    csServerIP=csip
+    print("set rs IP:" +clServerIP)
+    print("set cs IP:" +csServerIP)
+    
+
 def add_to_list(key, value):
     global cpoint_list
     cpoint_list.append([key, value])
@@ -94,12 +102,12 @@ def setDictData(setData):
 
 def connetServer():
     if rsws.connected == False :
-        print('client_server_ws connect try....')
+        print('client_server_ws connect try....'+clServerIP)
         rsws.connect(clServerIP,transports=['websocket'],retry=True) 
         #rsws.connect('http://18.180.239.45:5353',retry=True) 
         #rsws.connect('http://localhost:5353',transports=['websocket'],retry=True)
     if trws.connected == False :
-        print('trade_server__ws connect try....')
+        print('trade_server__ws connect try....'+csServerIP)
         trws.connect(csServerIP,transports=['websocket'],retry=True) 
         #trws.connect('http://18.180.239.45:4343',retry=True) 
         #trws.connect('http://localhost:4343',transports=['websocket'],retry=True)  

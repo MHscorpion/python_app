@@ -16,15 +16,17 @@ import asyncio
 import datetime
 import time
 import lsrevdata as raccess
-
+from datetime import date, timedelta
 
 # LS증권 접속 정보
 # ws_url "wss://openapi.ls-sec.co.kr:9443/websocket"
 # api_url "https://openapi.ls-sec.co.kr:8080"
 
-client=pymongo.MongoClient('mongodb+srv://androlimo2osys:Must980419@mongocluster.sm5hzzb.mongodb.net/mydb?retryWrites=true&w=majority')
+#client=pymongo.MongoClient('mongodb+srv://androlimo2osys:Must980419@mongocluster.sm5hzzb.mongodb.net/mydb?retryWrites=true&w=majority')
 #client=pymongo.MongoClient('mongodb://stock:0419@127.0.0.1:27017/Stockfuture?replicaSet=rs0&retryWrites=true&w=majority')
-stockdb=client['Stockfuture']
+client=pymongo.MongoClient('mongodb+srv://neov5550:must98*419@cluster1.fe2ug5h.mongodb.net/tradeccs?retryWrites=true&w=majority&appName=Cluster1')
+
+stockdb=client['tradeccs']
 #futuretable = stockdb.stockfutureinfos
 mastertable = stockdb.mastercodes
 tradingfirmtable = stockdb.tradingfirms
@@ -51,6 +53,7 @@ masterCodeDict = {}
 
 g_appkey = "PSOdB4dK0vMFThPNkCjfXJKZCpI3nYxPU3Ez" #"PSQR7rXtUSETOxRzfp2cWtdowY5bRC1rDQNW" #"PSyA055JFN5FhAlMVysqBDdOmjyKLbVOgWEJ"
 g_appsecret = "NRBinUGvs3WTVc9gw2WVVuZtr77mJXj7" 
+API_KEY = "757d79d628aa8332f915af95"
 
 #g_appkey = "PSQR7rXtUSETOxRzfp2cWtdowY5bRC1rDQNW" #"PSyA055JFN5FhAlMVysqBDdOmjyKLbVOgWEJ"
 #g_appsecret = "hXqoXyHf6dkMiTweAC4xsHX5l3UXsBAW" #"94YYLmDHNE8FdM1TKKF3LtkrW0tIBV9b"
@@ -63,6 +66,116 @@ api_url="https://openapi.ls-sec.co.kr:8080"
  
 clearConsole = lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 key_bytes = 32
+
+def get_exchange_rates(base_currency: str = "USD") -> dict:
+    """
+    ExchangeRate-API에서 최신 환율 정보를 가져옵니다.
+
+    Args:
+        base_currency (str): 기준이 되는 통화 코드 (예: "USD", "KRW", "EUR").
+                             무료 플랜에서는 'USD'가 기본이며, 다른 통화도 지원합니다.
+
+    Returns:
+        dict: 환율 정보가 담긴 딕셔너리. API 호출 실패 시 빈 딕셔너리 반환.
+    """
+    url = f"https://v6.exchangerate-api.com/v6/{API_KEY}/latest/{base_currency.upper()}"
+    
+    print(f"Fetching exchange rates from: {url}")
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status() # HTTP 에러 (4xx, 5xx) 발생 시 예외 발생
+
+        data = response.json()
+
+        if data.get("result") == "success":
+            return data
+        else:
+            print(f"Error from API: {data.get('error-type', 'Unknown error')}")
+            return {}
+
+    except requests.exceptions.RequestException as e:
+        print(f"Network or API request error: {e}")
+        return {}
+    except json.JSONDecodeError:
+        print("Failed to decode JSON response.")
+        return {}
+
+def get_rate_for_pair(base_currency: str, target_currency: str) -> float | None:
+    """
+    특정 통화 쌍의 환율을 가져옵니다.
+
+    Args:
+        base_currency (str): 기준 통화 코드.
+        target_currency (str): 대상 통화 코드.
+
+    Returns:
+        float | None: 환율 값. 찾을 수 없거나 에러 발생 시 None 반환.
+    """
+    data = get_exchange_rates(base_currency)
+    if data and "conversion_rates" in data:
+        krwValue = data["conversion_rates"].get(target_currency.upper())
+        dataDic={} 
+        
+        dataDic['code']=base_currency
+        dataDic['price']=f"{krwValue:.2f}"
+        current_time = datetime.datetime.now() 
+        dataDic['udpate']=current_time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        filter = {'code' : base_currency}
+        newvalues = { "$set": dataDic }
+        exgratetable.update_one(filter, newvalues,upsert=True)  
+        return krwValue;
+    return None
+
+def get_agent_info(akey):
+    """
+    Connects to the NestJS server and retrieves agent information by hocode.
+
+    :param hocode: The hocode to query.
+    :return: A dictionary with agent information or None if not found.
+    """
+    api_url = f"http://54.249.40.102:7272/agents/key/{akey}"
+
+    try:
+        response = requests.get(api_url)
+        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+
+        # Assuming the API returns JSON data
+        agent_info = response.json()
+        return agent_info
+
+    except requests.exceptions.HTTPError as http_err:
+        if response.status_code == 404:
+            print(f"Agent with akey '{akey}' not found.")
+        else:
+            print(f"HTTP error occurred: {http_err}")
+    except requests.exceptions.ConnectionError as conn_err:
+        print(f"Connection error occurred: {conn_err}")
+    except requests.exceptions.Timeout as timeout_err:
+        print(f"Timeout error occurred: {timeout_err}")
+    except requests.exceptions.RequestException as req_err:
+        print(f"An error occurred: {req_err}")
+    except json.JSONDecodeError:
+        print("Error: Could not decode JSON response.")
+
+    return None
+
+def read_hocode_from_file(file_path):
+    """
+    지정된 파일에서 hocode를 읽어옵니다.
+    :param file_path: hocode가 포함된 파일의 경로.
+    :return: 파일에서 읽은 hocode 문자열.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"파일을 찾을 수 없습니다: {file_path}")
+    
+    with open(file_path, 'r', encoding='utf-8') as f:
+        # 파일에서 첫 번째 줄을 읽고 양쪽 공백을 제거합니다.
+        hocode = f.readline().strip()
+    
+    return hocode
+
 
 def sendToServer(trid,data):
     global sio
@@ -124,7 +237,8 @@ def find_by_code( code):
 def get_exchangeRate():
     #global api_url
     try:
-        print('------ 환률 조회 요청 ------')          
+        print('------ 환률 조회 요청 ------')    
+        '''      
         headers = {"content-type": "application/json"}
         paramData = {"authkey": "Yge3eVr5q6ZwH571fTkCa4EqLKOpjI1T",
                      "searchdate":"20250617",
@@ -148,7 +262,38 @@ def get_exchangeRate():
             filter = {'code' : dataDic['code']}
             newvalues = { "$set": dataDic }
             exgratetable.update_one(filter, newvalues,upsert=True)  
-        print('------ 환률 조회 완료 ------') 
+        '''
+        print("\n--- USD to KRW rate ---")
+        usd_to_krw_rate = get_rate_for_pair("USD", "KRW")
+        if usd_to_krw_rate is not None:
+            print(f"1 USD = {usd_to_krw_rate:.2f} KRW")
+            dataDic={} 
+            dataDic['marketcode']='CME'
+            dataDic['exchangerate']=f"{usd_to_krw_rate:.2f}"
+            #current_time = datetime.datetime.now() 
+            #dataDic['udpate']=current_time.strftime('%Y-%m-%d %H:%M:%S')
+            filter = {'marketcode' : 'CME'}
+            newvalues = { "$set": dataDic }
+            mastertable.update_many(filter, newvalues,upsert=False)  
+        else:
+            print("Failed to get USD to KRW rate.")
+
+        # --- 특정 통화 쌍 환율 가져오기 (KRW to JPY) ---
+        print("\n--- HKD to KRW rate ---")
+        krw_to_hkd_rate = get_rate_for_pair("HKD", "KRW")
+        if krw_to_hkd_rate is not None:
+            print(f"1 HKD = {krw_to_hkd_rate:.2f} KRW")
+            dataDic={} 
+            dataDic['marketcode']='HKEx'
+            dataDic['exchangerate']=f"{krw_to_hkd_rate:.2f}"
+            #current_time = datetime.datetime.now() 
+            #dataDic['udpate']=current_time.strftime('%Y-%m-%d %H:%M:%S')
+            filter = {'marketcode' : 'HKEx'}
+            newvalues = { "$set": dataDic }
+            mastertable.update_many(filter, newvalues,upsert=False)  
+        else:
+            print("Failed to get KRW to JPY rate.")    
+            print('------ 환률 조회 완료 ------') 
     except Exception as e: 
         print(e)
 
@@ -277,6 +422,36 @@ async def lsmainLoop():
                     
 # 비동기로 서버에 접속한다.
 async def main():
+    
+    file_name = "code.txt"
+    hocode_from_file = ""
+
+    try:
+        hocode_from_file = read_hocode_from_file(file_name)
+    except FileNotFoundError as e:
+        print(e)
+        exit()
+    
+    if not hocode_from_file:
+        print(f"오류: '{file_name}' 파일이 비어 있습니다.")
+        exit()
+    agent_data = get_agent_info(hocode_from_file)
+
+    if agent_data:
+        print("Agent Information:")
+        print(f"  hocode: {agent_data.get('hocode')}")
+        print(f"  name: {agent_data.get('name')}")
+        print(f"  rsserver: {agent_data.get('rsserver')}")
+        print(f"  ccserver: {agent_data.get('ccserver')}")
+        print(f"  dbserver: {agent_data.get('dbserver')}")
+        print(f"  active: {agent_data.get('active')}")
+        print(f"  activekey: {agent_data.get('activekey')}")
+        raccess.setServerIp(agent_data.get('rsserver'),agent_data.get('ccserver'))
+        if agent_data.get('active') == 'false':
+            exit()
+    else:
+        print("Failed to retrieve agent information.")
+    
     try:
         # 웹소켓 시작
         await lsmainLoop()

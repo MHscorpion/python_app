@@ -25,7 +25,7 @@ def get_exchangeRate():
                 }
         PATH = "https://www.koreaexim.go.kr/site/program/financial/exchangeJSON"
         URL = f"{PATH}"
-        res = requests.get(URL,params=paramData,verify=False)
+        res = requests.get(URL,params=paramData)
         
         jsonData = res.json() 
         
@@ -54,7 +54,7 @@ def get_agent_info(akey):
     :param hocode: The hocode to query.
     :return: A dictionary with agent information or None if not found.
     """
-    api_url = f"http://localhost:4040/agents/key/{akey}"
+    api_url = f"http://54.249.40.102:7272/agents/key/{akey}"
 
     try:
         response = requests.get(api_url)
